@@ -8,3 +8,4 @@ export interface Customer {
     docNum: string;
     isFrequent: boolean;
     isDeleted?: boolean;
+}

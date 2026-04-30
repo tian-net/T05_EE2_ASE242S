@@ -10,15 +10,52 @@ import {
     Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useCustomer } from '../../hooks/useCustomer';
 import { CustomerForm } from '../../components/CustomerForm';
+import { Customer } from '../../interfaces/Customer';
+
+const demoCustomers: Customer[] = [
+    {
+        id: 'CUST-001',
+        firstName: 'Mariana',
+        lastName: 'Paredes',
+        phone: '912345678',
+        email: 'mariana@demo.com',
+        docType: 'DNI',
+        docNum: '70605040',
+        isFrequent: true,
+        isDeleted: false,
+    },
+    {
+        id: 'CUST-002',
+        firstName: 'Carlos',
+        lastName: 'Luna',
+        phone: '934567812',
+        email: 'carlos@demo.com',
+        docType: 'RUC',
+        docNum: '20123456789',
+        isFrequent: false,
+        isDeleted: false,
+    },
+    {
+        id: 'CUST-003',
+        firstName: 'Elena',
+        lastName: 'Ramos',
+        phone: '956123987',
+        email: 'elena@demo.com',
+        docType: 'Pasaporte',
+        docNum: 'AB12345',
+        isFrequent: true,
+        isDeleted: true,
+    },
+];
 
 export default function App() {
     const router = useRouter();
-    const { customers, loading, saveCustomer, deleteCustomer, restoreCustomer, fetchCustomers } = useCustomer();
+    const [loading] = useState(false);
+    const [customers, setCustomers] = useState<Customer[]>(demoCustomers);
 
     const [modalVisible, setModalVisible] = useState(false);
-    const [selected, setSelected] = useState<any>(null);
+    const [selected, setSelected] = useState<Customer | null>(null);
     const [showDeleted, setShowDeleted] = useState(false);
 
     // --- Lógica de Cerrar Sesión ---
@@ -33,7 +70,7 @@ export default function App() {
                     style: "destructive",
                     onPress: () => {
                         // replace asegura que el usuario no pueda volver atrás con el botón físico del cel
-                        router.replace('/login');
+                        router.replace('../login');
                     }
                 }
             ]
@@ -42,13 +79,44 @@ export default function App() {
 
     const handleToggle = (value: boolean) => {
         setShowDeleted(value);
-        fetchCustomers(value);
     };
 
-    const openForm = (c?: any) => {
+    const openForm = (c?: Customer) => {
         setSelected(c || null);
         setModalVisible(true);
     };
+
+    const saveCustomer = (customer: Customer) => {
+        if (customer.id) {
+            setCustomers((prev) =>
+                prev.map((item) => (item.id === customer.id ? { ...item, ...customer } : item))
+            );
+            return;
+        }
+
+        setCustomers((prev) => [
+            {
+                ...customer,
+                id: `CUST-${String(prev.length + 1).padStart(3, '0')}`,
+                isDeleted: false,
+            },
+            ...prev,
+        ]);
+    };
+
+    const deleteCustomer = (id: string) => {
+        setCustomers((prev) =>
+            prev.map((item) => (item.id === id ? { ...item, isDeleted: true } : item))
+        );
+    };
+
+    const restoreCustomer = (id: string) => {
+        setCustomers((prev) =>
+            prev.map((item) => (item.id === id ? { ...item, isDeleted: false } : item))
+        );
+    };
+
+    const visibleCustomers = customers.filter((item) => (showDeleted ? item.isDeleted : !item.isDeleted));
 
     if (loading) {
         return (
@@ -87,8 +155,8 @@ export default function App() {
 
             {/* Lista de Registros */}
             <FlatList
-                data={customers}
-                keyExtractor={(item: any) => item.id!}
+                data={visibleCustomers}
+                keyExtractor={(item: Customer) => item.id!}
                 contentContainerStyle={{ paddingBottom: 100 }}
                 ListEmptyComponent={<Text style={styles.emptyText}>No hay registros marinos aquí.</Text>}
                 renderItem={({ item }) => (
@@ -107,12 +175,12 @@ export default function App() {
                                     <TouchableOpacity onPress={() => openForm(item)}>
                                         <Text style={styles.editBtn}>Editar</Text>
                                     </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => deleteCustomer(item.id!)}>
+                                    <TouchableOpacity onPress={() => deleteCustomer(item.id || '')}>
                                         <Text style={styles.deleteBtn}>X</Text>
                                     </TouchableOpacity>
                                 </>
                             ) : (
-                                <TouchableOpacity onPress={() => restoreCustomer(item.id!)}>
+                                <TouchableOpacity onPress={() => restoreCustomer(item.id || '')}>
                                     <Text style={styles.restoreBtn}>Restaurar</Text>
                                 </TouchableOpacity>
                             )}
